@@ -75,9 +75,8 @@ const allUsers = asyncHandler(async(req, res) => {
     : {};
 
     //return users who are not equal to current user ($ne)
-    const users = await User.find(keyword)
-    //.find({_id: {$ne: req.body.user._id}});
-
+    //req.user returned from middleware
+    const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
     res.send(users);
 })
 
