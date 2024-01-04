@@ -62,7 +62,27 @@ const authUser = asyncHandler(async (req, res) => {
     }
 });
 
+const allUsers = asyncHandler(async(req, res) => {
+    //get user and search from query
+    const keyword = req.query.search
+    ? {
+        //filter db by keyword (whether that is name or email passed into params), option for case sensitivity
+        $or: [
+          { name: { $regex: req.query.search, $options: "i" } },
+          { email: { $regex: req.query.search, $options: "i" } },
+        ],
+      }
+    : {};
+
+    //return users who are not equal to current user ($ne)
+    const users = await User.find(keyword)
+    //.find({_id: {$ne: req.body.user._id}});
+
+    res.send(users);
+})
+
 module.exports = {
     registerUser,
-    authUser
+    authUser,
+    allUsers,
 }
