@@ -1,14 +1,25 @@
-const express = require('express')
-const mongoose = require('mongoose')
-const cors = require('cors')
-require('dotenv').config()
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const userRoutes = require('./routes/user')
+const {notFound, errorHandler} = require('./middleware/error')
 
-const app = express()
-const port = process.env.PORT
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT;
+const uri = process.env.ATLAS_URI;
+const userAPI = process.env.API_USER;
 
 app.use(express.json());
 app.use(cors());
 
-app.listen(port, () => {
-    console.log(`Connection to MongoDB successful. Listening on port: ${port}`)
-})
+mongoose.connect(uri).then(() => {
+    app.listen(port, () => console.log(`MongoDB Connection Established. Listening on port: ${port}`))
+}).catch((error) => {console.log(error)})
+
+app.use(userAPI, userRoutes)
+
+// error handling
+app.use(notFound);
+app.use(errorHandler);
