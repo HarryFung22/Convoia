@@ -1,61 +1,185 @@
-import {
-  Box,
-  Container,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
-  Text,
-} from "@chakra-ui/react";
-import { useEffect } from "react";
-import { useHistory } from "react-router-dom";
-// import Login from "../components/Authentication/Login";
-// import Signup from "../components/Authentication/Signup";
+import { Button, Flex, Heading, Link, Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Text, FormControl, FormLabel, Input, InputRightElement, InputGroup } from '@chakra-ui/react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { useState, useEffect } from 'react';
 
-function Homepage() {
-  // const history = useHistory();
+const Homepage = () => {
+  const [isSignUpModalOpen, setSignUpModalOpen] = useState(false);
+  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
 
-  // useEffect(() => {
-  //   const user = JSON.parse(localStorage.getItem("userInfo"));
+  const openSignUpModal = () => setSignUpModalOpen(true);
+  const closeSignUpModal = () => setSignUpModalOpen(false);
 
-  //   if (user) history.push("/chats");
-  // }, [history]);
+  const openLoginModal = () => setLoginModalOpen(true);
+  const closeLoginModal = () => setLoginModalOpen(false);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSignup = async () => {
+    try{
+      const response = await fetch('http://localhost:5000/api/user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({name: name, email: email, password: password})
+      })
+      
+      const json = await response.json();
+
+      if(json.ok) console.log(json)
+    }catch(error){
+      console.log(error)
+    }
+  }
 
   return (
-    <Container maxW="xl" centerContent>
-      <Box
-        d="flex"
-        justifyContent="center"
-        p={3}
-        bg="white"
-        w="100%"
-        m="40px 0 15px 0"
-        borderRadius="lg"
-        borderWidth="1px"
-      >
-        <Text fontSize="4xl" fontFamily="Work sans">
-          Convoia
+    <Flex direction="column" minH="100vh">
+      {/* Header */}
+      <Flex p="4" borderBottom="1px solid #ccc" justify="space-between" align="center">
+        <Flex align="center" spacing="8">
+          <Heading as="h1" fontSize="xl" fontWeight="bold" mr="4">
+            Convoia
+          </Heading>
+        </Flex>
+        <Flex align="center" spacing="4">
+          <Button colorScheme="blue" variant="solid" onClick={openSignUpModal} mr="2">
+            Sign Up
+          </Button>
+          <Button colorScheme="blue" variant="outline" onClick={openLoginModal}>
+            Log In
+          </Button>
+        </Flex>
+      </Flex>
+
+      {/* Main Content */}
+      <Flex flex="1" justify="center" align="center">
+        <div className="text-center">
+          <Heading as="h1" fontSize="4xl" fontWeight="bold" mb="4">
+            Stay Connected, Explore Conversations, and Discover Real-Time Chats Around You!
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Join Convoia today.
+          </Text>
+          <Button
+            colorScheme="blue"
+            variant="solid"
+            px="6"
+            py="3"
+            mt="4"
+            borderRadius="full"
+            fontWeight="semibold"
+            _hover={{ bg: 'blue.600' }}
+            onClick={openSignUpModal}
+          >
+            Sign Up
+          </Button>
+          <Text mt="4" fontSize="sm" color="gray.600">
+            Already have an account?{' '}
+            <Link color="blue.500" _hover={{ textDecoration: 'underline' }}  onClick={openLoginModal}>
+              Log in
+            </Link>
+          </Text>
+        </div>
+      </Flex>
+
+      {/* Footer */}
+      <Flex p="4" borderTop="1px solid #ccc" justify="center">
+        <Text fontSize="sm" color="gray.600">
+          &copy; 2024 Convoia. All rights reserved.
         </Text>
-      </Box>
-      <Box bg="white" w="100%" p={4} borderRadius="lg" borderWidth="1px">
-        <Tabs isFitted variant="soft-rounded">
-          <TabList mb="1em">
-            <Tab>Login</Tab>
-            <Tab>Sign Up</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel>
-              {/* <Login /> */}
-            </TabPanel>
-            <TabPanel>
-              {/* <Signup /> */}
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </Box>
-    </Container>
+      </Flex>
+
+      {/* Sign Up Modal */}
+      <Modal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} size="sm" isCentered="true">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Sign Up</ModalHeader>
+          <ModalCloseButton color="black" _hover={{ color: 'gray.500' }} />
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Name</FormLabel>
+              <Input
+                id='name'
+                placeholder="Enter your name"
+                onChange={(e) => setName(e.target.value)}
+                mb="4"
+              />
+              <FormLabel>Email</FormLabel>
+              <Input
+                id='email'
+                placeholder="Enter your email"
+                onChange={(e) => setEmail(e.target.value)}
+                mb="4"
+              />
+              <FormLabel>Password</FormLabel>
+              <InputGroup>
+                <Input
+                  id='password'
+                  placeholder="Enter your password"
+                  type={showPassword ? 'text' : 'password'}
+                  onChange={(e) => setPassword(e.target.value)}
+                  pr="4.5rem"
+                  mb="4"
+                />
+                <InputRightElement width="4.5rem">
+                  <Button
+                    h="1.75rem"
+                    size="sm"
+                    onClick={() => setShowPassword(!showPassword)}
+                    color="blue.500"
+                    bg="transparent"
+                    border="none"
+                  >
+                    {showPassword ? (
+                      <FontAwesomeIcon icon={faEye} />
+                    ) : (
+                      <FontAwesomeIcon icon={faEyeSlash} />
+                    )}
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={closeSignUpModal}>
+              Close
+            </Button>
+            <Button colorScheme="blue" variant="ghost" onClick={handleSignup}>
+              Sign Up
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Login Modal */}
+      <Modal isOpen={isLoginModalOpen} onClose={closeLoginModal} size="sm" isCentered="true">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Login</ModalHeader>
+          <ModalCloseButton color="black" _hover={{ color: 'gray.500' }} />
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Username</FormLabel>
+              <Input placeholder="Enter your username" />
+            </FormControl>
+            {/* Add more form fields as needed */}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={closeLoginModal}>
+              Close
+            </Button>
+            <Button colorScheme="blue" variant="ghost">
+              Log In
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Flex>
   );
-}
+};
 
 export default Homepage;
