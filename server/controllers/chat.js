@@ -1,8 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require("../models/user");
 const Chat = require('../models/chat');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 
 //individual chat, not group
 const accessChat = asyncHandler(async (req, res) => {
@@ -135,12 +133,12 @@ const removeFromGroup = asyncHandler(async (req, res) => {
 })
 
 const addToGroup = asyncHandler(async (req, res) => {
-    const { chatId, userId } = req.body;
+    const { chatID, userID } = req.body;
 
     const chat = await Chat.findByIdAndUpdate(
-        chatId,
+        chatID,
         {
-        $push: { users: userId },
+        $push: { users: userID },
         },
         {
         new: true,
