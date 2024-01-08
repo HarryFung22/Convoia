@@ -2,8 +2,11 @@ import { Button, Flex, Heading, Link, Modal, ModalOverlay, ModalContent, ModalHe
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Homepage = () => {
+  const navigate = useNavigate();
+
   const [isSignUpModalOpen, setSignUpModalOpen] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
 
@@ -29,8 +32,38 @@ const Homepage = () => {
       })
       
       const json = await response.json();
+      if(response.ok){
+        localStorage.setItem('user', JSON.stringify(json));
+        navigate('/chats')
+      }else{
+        //error handling
+        console.log(json.message)
+      }
 
-      if(json.ok) console.log(json)
+    }catch(error){
+      console.log(error)
+    }
+  }
+
+  const handleLogin = async () => {
+    try{
+      const response = await fetch('http://localhost:5000/api/user/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({email: email, password: password})
+      })
+
+      const json = await response.json();
+      if(response.ok){
+        localStorage.setItem('user', JSON.stringify(json));
+        navigate('/chats')
+      }else{
+        //error handling
+        console.log(json.message)
+      }
+
     }catch(error){
       console.log(error)
     }
@@ -38,7 +71,6 @@ const Homepage = () => {
 
   return (
     <Flex direction="column" minH="100vh">
-      {/* Header */}
       <Flex p="4" borderBottom="1px solid #ccc" justify="space-between" align="center">
         <Flex align="center" spacing="8">
           <Heading as="h1" fontSize="xl" fontWeight="bold" mr="4">
@@ -55,7 +87,6 @@ const Homepage = () => {
         </Flex>
       </Flex>
 
-      {/* Main Content */}
       <Flex flex="1" justify="center" align="center">
         <div className="text-center">
           <Heading as="h1" fontSize="4xl" fontWeight="bold" mb="4">
@@ -163,16 +194,47 @@ const Homepage = () => {
           <ModalCloseButton color="black" _hover={{ color: 'gray.500' }} />
           <ModalBody>
             <FormControl>
-              <FormLabel>Username</FormLabel>
-              <Input placeholder="Enter your username" />
+            <FormLabel>Email</FormLabel>
+              <Input
+                id='email'
+                placeholder="Enter your email"
+                onChange={(e) => setEmail(e.target.value)}
+                mb="4"
+              />
+              <FormLabel>Password</FormLabel>
+              <InputGroup>
+                <Input
+                  id='password'
+                  placeholder="Enter your password"
+                  type={showPassword ? 'text' : 'password'}
+                  onChange={(e) => setPassword(e.target.value)}
+                  pr="4.5rem"
+                  mb="4"
+                />
+                <InputRightElement width="4.5rem">
+                  <Button
+                    h="1.75rem"
+                    size="sm"
+                    onClick={() => setShowPassword(!showPassword)}
+                    color="blue.500"
+                    bg="transparent"
+                    border="none"
+                  >
+                    {showPassword ? (
+                      <FontAwesomeIcon icon={faEye} />
+                    ) : (
+                      <FontAwesomeIcon icon={faEyeSlash} />
+                    )}
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
             </FormControl>
-            {/* Add more form fields as needed */}
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" mr={3} onClick={closeLoginModal}>
               Close
             </Button>
-            <Button colorScheme="blue" variant="ghost">
+            <Button colorScheme="blue" variant="ghost" onClick={handleLogin}>
               Log In
             </Button>
           </ModalFooter>
