@@ -25,7 +25,9 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faEye, faEyeSlash, faCircle } from '@fortawesome/free-solid-svg-icons';
 
-const NewChatModal = ({ isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers }) => {
+const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers }) => {
+
+  const [name, setName] = useState("");
 
   const handleUserClick = (user) => {
     if (selectedUsers.some((selectedUser) => selectedUser._id === user._id)) {
@@ -39,19 +41,28 @@ const NewChatModal = ({ isOpen, onClose, setQuery, data, selectedUsers, setSelec
     return selectedUsers.some((selectedUser) => selectedUser._id === user._id);
   };
 
-  // const createGroupchat = async () => {
-  //   var modified = [];
-  //   selectedUsers.map((user) => modified.push(user._id));
-  //   console.log(modified);
-  //   const response = await fetch(`http://localhost:5000/api/chat/group`, {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //     body: JSON.stringify({})
-  //   })
-  // }
+  const createGroupchat = async () => {
+    var modified = [];
+    selectedUsers.map((user) => modified.push(user._id));
+    modified= JSON.stringify(modified);
+
+    try{
+      const response = await fetch(`http://localhost:5000/api/chat/group`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({users: modified, name: name})
+      })
+      
+      const json = await response.json();
+      console.log(json)
+
+    }catch(error){
+      console.log(error)
+    }
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm" isCentered>
@@ -60,6 +71,13 @@ const NewChatModal = ({ isOpen, onClose, setQuery, data, selectedUsers, setSelec
         <ModalCloseButton color="black" _hover={{ color: 'gray.500' }} />
         <ModalBody overflowY="auto">
           <Box position="sticky" top="0" bg="white" p="3" zIndex="1">
+            <FormLabel>Name</FormLabel>
+              <Input
+                id='name'
+                placeholder="Enter your name"
+                onChange={(e) => setName(e.target.value)}
+                mb="4"
+              />
             <FormControl>
               <InputGroup>
                 <InputLeftElement
@@ -119,7 +137,7 @@ const NewChatModal = ({ isOpen, onClose, setQuery, data, selectedUsers, setSelec
           <Button colorScheme="blue" mr={3} onClick={onClose}>
             Close
           </Button>
-          <Button colorScheme="blue" variant="ghost" onClick={() => console.log('bruh')}>
+          <Button colorScheme="blue" variant="ghost" onClick={createGroupchat}>
             Sign Up
           </Button>
         </ModalFooter>
@@ -222,6 +240,7 @@ const ChatInterface = () => {
         </Flex>
         <Button onClick={() => setShowNewChatModal(true)}>New Chat</Button>
         <NewChatModal 
+          token={token}
           isOpen={showNewChatModal} 
           onClose={() => {
             setShowNewChatModal(false);
