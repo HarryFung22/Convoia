@@ -117,14 +117,12 @@ const Homepage = () => {
         </div>
       </Flex>
 
-      {/* Footer */}
       <Flex p="4" borderTop="1px solid #ccc" justify="center">
         <Text fontSize="sm" color="gray.600">
           &copy; 2024 Convoia. All rights reserved.
         </Text>
       </Flex>
 
-      {/* Sign Up Modal */}
       <Modal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} size="sm" isCentered="true">
         <ModalOverlay />
         <ModalContent>
@@ -186,7 +184,6 @@ const Homepage = () => {
         </ModalContent>
       </Modal>
 
-      {/* Login Modal */}
       <Modal isOpen={isLoginModalOpen} onClose={closeLoginModal} size="sm" isCentered="true">
         <ModalOverlay />
         <ModalContent>
