@@ -56,8 +56,7 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
         body: JSON.stringify({users: modified, name: name})
       })
       
-      const json = await response.json();
-      console.log(json)
+      if(response.ok) onClose();
 
     }catch(error){
       console.log(error)
@@ -66,6 +65,7 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm" isCentered>
+      <ModalOverlay bg="rgba(0, 0, 0, 0.5)" />
       <ModalContent height="40vh">
         <ModalHeader>New Chat</ModalHeader>
         <ModalCloseButton color="black" _hover={{ color: 'gray.500' }} />
@@ -147,7 +147,30 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 };
 
 
-const ChatSidebar = ({ setQuery, data }) => {
+const ChatSidebar = ({ chats, setChats, token }) => {
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    const fetchChats = setInterval(async () => {
+      try{
+        const response = await fetch('http://localhost:5000/api/chat', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const json = await response.json();
+        if(response.ok) setChats(json)
+        console.log(json);
+        }catch(error){
+          console.log(error)
+        }
+      }, 6000)
+    return () => clearInterval(fetchChats);
+  }, [])
+
   return (
     <VStack bg="white" w="15%" h="100vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
       <Box p="3">
@@ -164,26 +187,25 @@ const ChatSidebar = ({ setQuery, data }) => {
           </FormControl>
         </Flex>
       </Box>
-      {data.map((user) => {
-        const shouldHideOverflow = user.name.length > 10;
+      {chats.map((chat) => {
+        const shouldHideOverflow = chat.chatName.length > 10;
         return (
           <Box
-            key={user._id}
+            key={chat._id}
             p="3"
             cursor="pointer"
             _hover={{ bg: 'gray.100' }}
-            onClick={() => console.log(user.name)}
+            onClick={() => console.log(chat._id)}
             w="100%"
           >
             <Flex align="center" justifyContent="center">
-              <Image src={user.picture} alt={user.name} w="30px" h="30px" borderRadius="50%" mr="2" />
               <Text
                 w="80px"
                 overflow={shouldHideOverflow ? 'hidden' : 'visible'}
                 textOverflow="ellipsis"
                 whiteSpace="nowrap"
               >
-                {user.name}
+                {chat.chatName}
               </Text>
             </Flex>
           </Box>
@@ -199,10 +221,6 @@ const Chat = () => {
 
 const ChatInterface = () => {
   const token = JSON.parse(localStorage.getItem('user')).token;
-
-  //sidebar
-  const [query, setQuery] = useState('');
-  const [data, setData] = useState([]);
 
   //new chat button
   const [selectQuery, setSelectQuery] = useState('');
@@ -230,6 +248,26 @@ const ChatInterface = () => {
     fetchQuery();
   }, [selectQuery]);
 
+  //sidebar
+  const [chats, setChats] = useState([]);
+
+  const chatsFetch = async () => {
+    const response = await fetch('http://localhost:5000/api/chat', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.ok){
+      const json = await response.json();
+      setChats(json);
+    }
+  }
+
+  useEffect(() => chatsFetch, [])
+
   return (
     <VStack spacing="0" h="100vh">
       <Flex p="4" borderBottom="1px solid #ccc" justify="space-between" w="100%" align="center" px="6">
@@ -253,7 +291,7 @@ const ChatInterface = () => {
         />
       </Flex>
       <Flex w="100%" h="90%" bg="white">
-        <ChatSidebar setQuery={setQuery} data={data} />
+        <ChatSidebar chats={chats} setChats={setChats} token={token}/>
         <Chat />
       </Flex>
     </VStack>
