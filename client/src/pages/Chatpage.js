@@ -20,10 +20,11 @@ import {
   FormLabel,
   InputGroup,
   InputRightElement,
-  InputLeftElement
+  InputLeftElement,
+  IconButton
 } from '@chakra-ui/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faEye, faEyeSlash, faCircle } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faEye, faEyeSlash, faCircle, faPaperPlane, faUser } from '@fortawesome/free-solid-svg-icons';
 
 const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers }) => {
 
@@ -147,7 +148,7 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 };
 
 
-const ChatSidebar = ({ chats, setChats, token }) => {
+const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -163,7 +164,7 @@ const ChatSidebar = ({ chats, setChats, token }) => {
 
         const json = await response.json();
         if(response.ok) setChats(json)
-        console.log(json);
+
         }catch(error){
           console.log(error)
         }
@@ -195,7 +196,7 @@ const ChatSidebar = ({ chats, setChats, token }) => {
             p="3"
             cursor="pointer"
             _hover={{ bg: 'gray.100' }}
-            onClick={() => console.log(chat._id)}
+            onClick={() => setClickRef(chat)}
             w="100%"
           >
             <Flex align="center" justifyContent="center">
@@ -215,12 +216,102 @@ const ChatSidebar = ({ chats, setChats, token }) => {
   );
 };
 
-const Chat = () => {
-  return <Box w="85%" h="100vh" bg="gray.100"></Box>;
+const Chat = ({clickRef, token, user, messages, setMessages}) => {
+  const [text, setText] = useState("");
+
+  const handleReq = async () => {
+    const response = await fetch('http://localhost:5000/api/message/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({content: text, chatID: clickRef._id})
+    })
+
+    if (response.ok){
+      setText("");
+    }
+  }
+
+  useEffect(() => {
+    const fetchMessages = setInterval(async () => {
+      try{
+        const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if(response.ok){
+          const json = await response.json();
+          setMessages(json);
+        }
+
+        }catch(error){
+          console.log(error)
+        }
+      }, 6000)
+    return () => clearInterval(fetchMessages);
+  }, [clickRef])
+
+  const renderMessage = (message) => {
+    const isUser = message.sender._id === user._id;
+    const alignment = isUser ? 'flex-end' : 'flex-start';
+
+    return (
+      <Flex key={message._id} justify={alignment} mb="2">
+        {!isUser && (
+          <Box mr="2">
+            <FontAwesomeIcon icon={faUser} />
+          </Box>
+        )}
+        <Box
+          p="3"
+          bg={isUser ? 'blue.200' : 'gray.200'}
+          color={isUser ? 'white' : 'black'}
+          borderRadius="md"
+          maxW="70%"
+        >
+          {message.content}
+        </Box>
+        {isUser && (
+          <Box ml="2">
+            <FontAwesomeIcon icon={faUser} />
+          </Box>
+        )}
+      </Flex>
+    );
+  };
+
+  return (
+    <Box w="85%" h="100vh" bg="gray.100" p="4" display="flex" flexDirection="column">
+      <Box bg="white" p="2" mb="2">
+        <Text fontSize="xl" fontWeight="bold">{clickRef.chatName}</Text>
+      </Box>
+      <Box flex="1" overflowY="auto">
+        {messages.length > 0 && messages.map((message) => renderMessage(message))}
+      </Box>
+      <Flex align="center">
+        <Input placeholder="Type your message..." flex="1" mr="2" value={text} onChange={(e) => setText(e.target.value)}/>
+        <IconButton
+          aria-label="Send message"
+          icon={<FontAwesomeIcon icon={faPaperPlane} />}
+          colorScheme="blue"
+          onClick={handleReq}
+        />
+      </Flex>
+    </Box>
+  );
 };
 
+
 const ChatInterface = () => {
-  const token = JSON.parse(localStorage.getItem('user')).token;
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  const [clickRef, setClickRef] = useState([]);
 
   //new chat button
   const [selectQuery, setSelectQuery] = useState('');
@@ -234,7 +325,7 @@ const ChatInterface = () => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${user.token}`,
       },
     });
 
@@ -251,18 +342,39 @@ const ChatInterface = () => {
   //sidebar
   const [chats, setChats] = useState([]);
 
+  //mainchat
+  const [messages, setMessages] = useState("")
+
+  const messageFetch = async () => {
+    const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${user.token}`,
+      },
+    })
+
+    if(response.ok){
+      const json = await response.json();
+      setMessages(json);
+    }
+  }
+
+  useEffect(() => messageFetch, [clickRef])
+
   const chatsFetch = async () => {
     const response = await fetch('http://localhost:5000/api/chat', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${user.token}`,
       },
     })
 
     if (response.ok){
       const json = await response.json();
       setChats(json);
+      setClickRef(json[0]);
     }
   }
 
@@ -278,7 +390,7 @@ const ChatInterface = () => {
         </Flex>
         <Button onClick={() => setShowNewChatModal(true)}>New Chat</Button>
         <NewChatModal 
-          token={token}
+          token={user.token}
           isOpen={showNewChatModal} 
           onClose={() => {
             setShowNewChatModal(false);
@@ -291,8 +403,8 @@ const ChatInterface = () => {
         />
       </Flex>
       <Flex w="100%" h="90%" bg="white">
-        <ChatSidebar chats={chats} setChats={setChats} token={token}/>
-        <Chat />
+        <ChatSidebar chats={chats} setChats={setChats} token={user.token} setClickRef={setClickRef}/>
+        <Chat clickRef={clickRef} token={user.token} user={user} messages={messages} setMessages={setMessages}/>
       </Flex>
     </VStack>
   );
