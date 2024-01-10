@@ -347,17 +347,6 @@ const ChatInterface = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   const [socketConnect, setSocketConnect] = useState(false)
 
-  //socket connection
-  socket.emit("setup", user);
-  socket.on("connected", () => setSocketConnect(true))
-  
-  useEffect(() => {
-    socket.on("message received", (newMessageReceived) => {
-      const messageExists = messages && messages.some((message) => message._id === newMessageReceived._id);
-      if (!messageExists) setMessages((prev) => [...prev, newMessageReceived])
-    })
-  })
-
   const [clickRef, setClickRef] = useState([]);
 
   //new chat button
@@ -409,6 +398,23 @@ const ChatInterface = () => {
   }
 
   useEffect(() => chatsFetch, [])
+
+  //socket connection
+  socket.emit("setup", user);
+  socket.on("connected", () => setSocketConnect(true))
+  
+  useEffect(() => {
+    const handleNewMessage = (newMessageReceived) => {
+      const messageExists = messages && messages.some((message) => message._id === newMessageReceived._id);
+      if (!messageExists) setMessages((prev) => [...prev, newMessageReceived]);
+    };
+  
+    socket.on("message received", handleNewMessage);
+  
+    return () => {
+      socket.off("message received", handleNewMessage);
+    };
+  }, [messages])
 
   return (
     <VStack spacing="0" h="100vh">
