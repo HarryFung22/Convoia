@@ -33,6 +33,7 @@ const socket = io('http://localhost:5000', {
   },
 });
 
+
 const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers, setChats }) => {
 
   const [name, setName] = useState("");
@@ -192,7 +193,7 @@ const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
   }, [])
 
   return (
-    <VStack bg="white" w="15%" h="100vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
+    <VStack bg="white" w="15%" h="94.4vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
       <Box p="3">
         <Flex align="center">
           <FormControl>
@@ -285,25 +286,34 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
   const renderMessage = (message) => {
     const isUser = message.sender._id === user._id;
     const alignment = isUser ? 'flex-end' : 'flex-start';
-
+  
     return (
-      <Flex key={message._id} justify={alignment} mb="2">
+      <Flex key={message._id} justify={alignment} mb="2" alignItems="flex-start">
         {!isUser && (
-          <Box mr="2">
+          <Box mt="auto" mb="auto" mr="2">
             <FontAwesomeIcon icon={faUser} />
           </Box>
         )}
-        <Box
-          p="3"
-          bg={isUser ? 'blue.200' : 'gray.200'}
-          color={isUser ? 'white' : 'black'}
-          borderRadius="md"
-          maxW="70%"
-        >
-          {message.content}
+        <Box w="100%">
+          <Flex align="center" justify={isUser ? 'flex-end' : 'flex-start'}>
+            <Box
+              p="3"
+              bg={isUser ? 'blue.200' : 'gray.200'}
+              color={isUser ? 'white' : 'black'}
+              borderRadius="md"
+              maxW="70%"
+              mb="2"
+            >
+              <Box textAlign={isUser ? 'right' : 'left'} mb="2">
+                <Text fontSize="sm" fontWeight="bold">{isUser ? 'You' : message.sender.name}</Text>
+                <Text fontSize="sm" color="gray.500">{!isUser && message.sender.email}</Text>
+              </Box>
+              {message.content}
+            </Box>
+          </Flex>
         </Box>
         {isUser && (
-          <Box ml="2">
+          <Box mt="auto" mb="auto" ml="2">
             <FontAwesomeIcon icon={faUser} />
           </Box>
         )}
@@ -312,7 +322,7 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
   };
 
   return (
-    <Box w="85%" h="100vh" bg="gray.100" p="4" display="flex" flexDirection="column">
+    <Box w="85%" h="94.4vh" bg="gray.100" p="4" display="flex" flexDirection="column">
       <Box bg="white" p="2" mb="2">
         <Text fontSize="xl" fontWeight="bold">{clickRef && clickRef.chatName}</Text>
       </Box>
@@ -336,8 +346,17 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
 const ChatInterface = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   const [socketConnect, setSocketConnect] = useState(false)
+
+  //socket connection
   socket.emit("setup", user);
   socket.on("connected", () => setSocketConnect(true))
+  
+  useEffect(() => {
+    socket.on("message received", (newMessageReceived) => {
+      const messageExists = messages && messages.some((message) => message._id === newMessageReceived._id);
+      if (!messageExists) setMessages((prev) => [...prev, newMessageReceived])
+    })
+  })
 
   const [clickRef, setClickRef] = useState([]);
 
@@ -372,25 +391,6 @@ const ChatInterface = () => {
 
   //mainchat
   const [messages, setMessages] = useState("")
-
-  const messageFetch = async () => {
-    const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.token}`,
-      },
-    })
-
-    if(response.ok){
-      const json = await response.json();
-      setMessages(json);
-    }
-  }
-
-  useEffect(() => {
-    messageFetch();
-  }, [clickRef])
 
   const chatsFetch = async () => {
     const response = await fetch('http://localhost:5000/api/chat', {

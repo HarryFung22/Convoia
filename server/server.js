@@ -67,7 +67,7 @@ io.on("connection", (socket) => {
         if (user._id == newMessageRecieved.sender._id) return;
     
         //inside that users room, emits/sends msg
-        socket.in(user._id).emit("message recieved", newMessageRecieved);
+        socket.in(user._id).emit("message received", newMessageRecieved);
         });
     });
     
