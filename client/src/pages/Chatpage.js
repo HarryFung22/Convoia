@@ -25,8 +25,15 @@ import {
 } from '@chakra-ui/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faEye, faEyeSlash, faCircle, faPaperPlane, faUser } from '@fortawesome/free-solid-svg-icons';
+import io from "socket.io-client";
 
-const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers }) => {
+const socket = io('http://localhost:5000', {
+  cors: {
+    origin: 'http://localhost:3000', 
+  },
+});
+
+const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, setSelectedUsers, setChats }) => {
 
   const [name, setName] = useState("");
 
@@ -57,7 +64,19 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
         body: JSON.stringify({users: modified, name: name})
       })
       
-      if(response.ok) onClose();
+      if(response.ok){
+        const response = await fetch('http://localhost:5000/api/chat', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const json = await response.json();
+        if(response.ok) setChats(json)
+        onClose();
+      } 
 
     }catch(error){
       console.log(error)
@@ -139,7 +158,7 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
             Close
           </Button>
           <Button colorScheme="blue" variant="ghost" onClick={createGroupchat}>
-            Sign Up
+            Create Group Chat
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -196,7 +215,10 @@ const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
             p="3"
             cursor="pointer"
             _hover={{ bg: 'gray.100' }}
-            onClick={() => setClickRef(chat)}
+            onClick={() => {
+              setClickRef(chat)
+              socket.emit("join chat", chat._id)
+            }}
             w="100%"
           >
             <Flex align="center" justifyContent="center">
@@ -230,12 +252,15 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
     })
 
     if (response.ok){
+      const json = await response.json();
+      setMessages(prevMessages => [...prevMessages, json])
       setText("");
+      socket.emit("new message", json)
     }
   }
 
   useEffect(() => {
-    const fetchMessages = setInterval(async () => {
+    const fetchMessages = async () => {
       try{
         const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
           method: 'GET',
@@ -253,8 +278,8 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
         }catch(error){
           console.log(error)
         }
-      }, 6000)
-    return () => clearInterval(fetchMessages);
+    }
+    fetchMessages();
   }, [clickRef])
 
   const renderMessage = (message) => {
@@ -289,7 +314,7 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
   return (
     <Box w="85%" h="100vh" bg="gray.100" p="4" display="flex" flexDirection="column">
       <Box bg="white" p="2" mb="2">
-        <Text fontSize="xl" fontWeight="bold">{clickRef.chatName}</Text>
+        <Text fontSize="xl" fontWeight="bold">{clickRef && clickRef.chatName}</Text>
       </Box>
       <Box flex="1" overflowY="auto">
         {messages.length > 0 && messages.map((message) => renderMessage(message))}
@@ -310,6 +335,9 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
 
 const ChatInterface = () => {
   const user = JSON.parse(localStorage.getItem('user'));
+  const [socketConnect, setSocketConnect] = useState(false)
+  socket.emit("setup", user);
+  socket.on("connected", () => setSocketConnect(true))
 
   const [clickRef, setClickRef] = useState([]);
 
@@ -360,7 +388,9 @@ const ChatInterface = () => {
     }
   }
 
-  useEffect(() => messageFetch, [clickRef])
+  useEffect(() => {
+    messageFetch();
+  }, [clickRef])
 
   const chatsFetch = async () => {
     const response = await fetch('http://localhost:5000/api/chat', {
@@ -400,6 +430,7 @@ const ChatInterface = () => {
           data={selectData} 
           selectedUsers={selectedUsers}
           setSelectedUsers={setSelectedUsers}
+          setChats={setChats}
         />
       </Flex>
       <Flex w="100%" h="90%" bg="white">
