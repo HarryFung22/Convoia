@@ -171,25 +171,25 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 const ChatSidebar = ({ chats, setChats, token, clickRef, setClickRef }) => {
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    const fetchChats = setInterval(async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/chat', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  // useEffect(() => {
+  //   const fetchChats = setInterval(async () => {
+  //     try {
+  //       const response = await fetch('http://localhost:5000/api/chat', {
+  //         method: 'GET',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
 
-        const json = await response.json();
-        if (response.ok) setChats(json);
-      } catch (error) {
-        console.log(error);
-      }
-    }, 6000);
-    return () => clearInterval(fetchChats);
-  }, []);
+  //       const json = await response.json();
+  //       if (response.ok) setChats(json);
+  //     } catch (error) {
+  //       console.log(error);
+  //     }
+  //   }, 6000);
+  //   return () => clearInterval(fetchChats);
+  // }, []);
 
   return (
     <VStack bg="white" w="15%" h="94.4vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
@@ -246,7 +246,7 @@ const ChatSidebar = ({ chats, setChats, token, clickRef, setClickRef }) => {
 };
 
 
-const Chat = ({clickRef, token, user, messages, setMessages}) => {
+const Chat = ({clickRef, token, user, messages, setMessages, refreshChats}) => {
   const [text, setText] = useState("");
 
   const handleReq = async () => {
@@ -263,7 +263,8 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
       const json = await response.json();
       setMessages(prevMessages => [...prevMessages, json])
       setText("");
-      socket.emit("new message", json)
+      socket.emit("new message", json);
+      refreshChats();
     }
   }
 
@@ -353,7 +354,6 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
 
 const ChatInterface = () => {
   const user = JSON.parse(localStorage.getItem('user'));
-  const [socketConnect, setSocketConnect] = useState(false)
 
   const [clickRef, setClickRef] = useState([]);
 
@@ -409,12 +409,30 @@ const ChatInterface = () => {
 
   //socket connection
   socket.emit("setup", user);
-  socket.on("connected", () => setSocketConnect(true))
+  socket.on("connected", () => chatsFetch)
+
+  const refreshChats = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/chat', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+
+      const json = await response.json();
+      if (response.ok) setChats(json);
+    } catch (error) {
+      console.log(error);
+    }
+  }
   
   useEffect(() => {
     const handleNewMessage = (newMessageReceived) => {
       const messageExists = messages && messages.some((message) => message._id === newMessageReceived._id);
       if (!messageExists) setMessages((prev) => [...prev, newMessageReceived]);
+      refreshChats();
     };
   
     socket.on("message received", handleNewMessage);
@@ -449,7 +467,7 @@ const ChatInterface = () => {
       </Flex>
       <Flex w="100%" h="90%" bg="white">
         <ChatSidebar chats={chats} setChats={setChats} token={user.token} clickRef={clickRef} setClickRef={setClickRef}/>
-        <Chat clickRef={clickRef} token={user.token} user={user} messages={messages} setMessages={setMessages}/>
+        <Chat clickRef={clickRef} token={user.token} user={user} messages={messages} setMessages={setMessages} refreshChats={refreshChats}/>
       </Flex>
     </VStack>
   );
