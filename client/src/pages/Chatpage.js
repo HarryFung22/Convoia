@@ -168,29 +168,28 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 };
 
 
-const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
+const ChatSidebar = ({ chats, setChats, token, clickRef, setClickRef }) => {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     const fetchChats = setInterval(async () => {
-      try{
+      try {
         const response = await fetch('http://localhost:5000/api/chat', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
         const json = await response.json();
-        if(response.ok) setChats(json)
-
-        }catch(error){
-          console.log(error)
-        }
-      }, 6000)
+        if (response.ok) setChats(json);
+      } catch (error) {
+        console.log(error);
+      }
+    }, 6000);
     return () => clearInterval(fetchChats);
-  }, [])
+  }, []);
 
   return (
     <VStack bg="white" w="15%" h="94.4vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
@@ -203,13 +202,13 @@ const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
                 children={<FontAwesomeIcon icon={faSearch} />}
                 color="gray.500"
               />
-              <Input placeholder="Search" onChange={(e) => setQuery(e.target.value)}/>
+              <Input placeholder="Search" onChange={(e) => setQuery(e.target.value)} />
             </InputGroup>
           </FormControl>
         </Flex>
       </Box>
       {chats.map((chat) => {
-        const shouldHideOverflow = chat.chatName.length > 10;
+        const shouldHideOverflow = chat.chatName.length > 30;
         return (
           <Box
             key={chat._id}
@@ -217,20 +216,27 @@ const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
             cursor="pointer"
             _hover={{ bg: 'gray.100' }}
             onClick={() => {
-              setClickRef(chat)
-              socket.emit("join chat", chat._id)
+              setClickRef(chat);
+              socket.emit("join chat", chat._id);
             }}
             w="100%"
+            overflow="hidden"
           >
-            <Flex align="center" justifyContent="center">
+            <Flex align="flex-start" justifyContent="flex-start" flexDirection="column">
               <Text
                 w="80px"
                 overflow={shouldHideOverflow ? 'hidden' : 'visible'}
                 textOverflow="ellipsis"
+                color="gray.800"
                 whiteSpace="nowrap"
               >
                 {chat.chatName}
               </Text>
+              {chat.latestMessage && (
+                <Text as={clickRef._id === chat._id && 'b'} fontSize="sm" textAlign="left">
+                  {chat.latestMessage.sender.name}: {chat.latestMessage.content}
+                </Text>
+              )}
             </Flex>
           </Box>
         );
@@ -238,6 +244,7 @@ const ChatSidebar = ({ chats, setChats, token, setClickRef }) => {
     </VStack>
   );
 };
+
 
 const Chat = ({clickRef, token, user, messages, setMessages}) => {
   const [text, setText] = useState("");
@@ -260,26 +267,27 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
     }
   }
 
+  const fetchMessages = async () => {
+    try{
+      const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if(response.ok){
+        const json = await response.json();
+        setMessages(json);
+      }
+
+      }catch(error){
+        console.log(error)
+      }
+  }
+
   useEffect(() => {
-    const fetchMessages = async () => {
-      try{
-        const response = await fetch(`http://localhost:5000/api/message/${clickRef._id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if(response.ok){
-          const json = await response.json();
-          setMessages(json);
-        }
-
-        }catch(error){
-          console.log(error)
-        }
-    }
     fetchMessages();
   }, [clickRef])
 
@@ -326,11 +334,11 @@ const Chat = ({clickRef, token, user, messages, setMessages}) => {
       <Box bg="white" p="2" mb="2">
         <Text fontSize="xl" fontWeight="bold">{clickRef && clickRef.chatName}</Text>
       </Box>
-      <Box flex="1" overflowY="auto">
+      <Box flex="1" overflowY="auto" pr="8">
         {messages.length > 0 && messages.map((message) => renderMessage(message))}
       </Box>
       <Flex align="center">
-        <Input placeholder="Type your message..." flex="1" mr="2" value={text} onChange={(e) => setText(e.target.value)}/>
+        <Input placeholder="Type your message..." flex="1" mr="2" value={text} onChange={(e) => setText(e.target.value)} />
         <IconButton
           aria-label="Send message"
           icon={<FontAwesomeIcon icon={faPaperPlane} />}
@@ -440,7 +448,7 @@ const ChatInterface = () => {
         />
       </Flex>
       <Flex w="100%" h="90%" bg="white">
-        <ChatSidebar chats={chats} setChats={setChats} token={user.token} setClickRef={setClickRef}/>
+        <ChatSidebar chats={chats} setChats={setChats} token={user.token} clickRef={clickRef} setClickRef={setClickRef}/>
         <Chat clickRef={clickRef} token={user.token} user={user} messages={messages} setMessages={setMessages}/>
       </Flex>
     </VStack>
