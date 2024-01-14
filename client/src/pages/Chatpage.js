@@ -21,10 +21,15 @@ import {
   InputGroup,
   InputRightElement,
   InputLeftElement,
-  IconButton
+  IconButton, 
+  Menu, 
+  MenuButton,
+  MenuList, 
+  MenuItem,
+  Badge
 } from '@chakra-ui/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faEye, faEyeSlash, faCircle, faPaperPlane, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faEye, faEyeSlash, faCircle, faPaperPlane, faUser, faBell } from '@fortawesome/free-solid-svg-icons';
 import io from "socket.io-client";
 
 const socket = io('http://localhost:5000', {
@@ -170,26 +175,6 @@ const NewChatModal = ({ token, isOpen, onClose, setQuery, data, selectedUsers, s
 
 const ChatSidebar = ({ chats, setChats, token, clickRef, setClickRef }) => {
   const [query, setQuery] = useState('');
-
-  // useEffect(() => {
-  //   const fetchChats = setInterval(async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:5000/api/chat', {
-  //         method: 'GET',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-
-  //       const json = await response.json();
-  //       if (response.ok) setChats(json);
-  //     } catch (error) {
-  //       console.log(error);
-  //     }
-  //   }, 6000);
-  //   return () => clearInterval(fetchChats);
-  // }, []);
 
   return (
     <VStack bg="white" w="15%" h="94.4vh" boxShadow="0px 4px 4px rgba(0, 0, 0, 0.1)">
@@ -427,9 +412,13 @@ const ChatInterface = () => {
       console.log(error);
     }
   }
+
+  const [notifications, setNotifications] = useState([])
   
   useEffect(() => {
     const handleNewMessage = (newMessageReceived) => {
+      setNotifications((prev) => [...prev, newMessageReceived])
+      
       const messageExists = messages && messages.some((message) => message._id === newMessageReceived._id);
       if (!messageExists) setMessages((prev) => [...prev, newMessageReceived]);
       refreshChats();
@@ -450,7 +439,41 @@ const ChatInterface = () => {
             Convoia
           </Heading>
         </Flex>
-        <Button onClick={() => setShowNewChatModal(true)}>New Chat</Button>
+        <Flex ml="auto" align="center">
+          <Menu>
+            <MenuButton as={Button} variant="ghost" position="relative">
+              <FontAwesomeIcon icon={faBell} size="lg" />
+              {notifications.length > 0 && (
+                <Badge
+                  position="absolute"
+                  top="-1"
+                  right="-1"
+                  colorScheme="red"
+                >
+                  {notifications.length}
+                </Badge>
+              )}
+            </MenuButton>
+            {notifications.length > 0 && (
+              <MenuList>
+                {notifications.map((notification, i) => {
+                  const sentAtTime = new Date(notification.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                  return (
+                    <MenuItem key={i}>
+                    <Box>
+                      <Text fontWeight="bold">{notification.chat.chatName}</Text>
+                      <Text fontSize="sm" color="gray.500">{`Sent by ${notification.sender.name} at ${sentAtTime}`}</Text>
+                      <Text>{notification.content}</Text>
+                    </Box>
+                  </MenuItem>
+                  )
+                })}
+                <MenuItem onClick={() => setNotifications([])}>Clear Notifications</MenuItem>
+              </MenuList>
+            )}
+          </Menu>
+          <Button onClick={() => setShowNewChatModal(true)} ml="4">New Chat</Button>
+        </Flex>
         <NewChatModal 
           token={user.token}
           isOpen={showNewChatModal} 
